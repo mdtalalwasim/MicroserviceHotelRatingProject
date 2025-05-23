@@ -1,0 +1,18 @@
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Build
+target/
+build/
+*.jar
+*.war
+
+# Logs
+logs/
+*.log
+
+# Other
+.DS_Store
