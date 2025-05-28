@@ -1,5 +1,6 @@
 package com.mdtalalwasim.user.service.services.impl;
 
+import com.mdtalalwasim.user.service.entities.Hotel;
 import com.mdtalalwasim.user.service.entities.Rating;
 import com.mdtalalwasim.user.service.entities.User;
 import com.mdtalalwasim.user.service.exception.ResourceNotFoundException;
@@ -8,13 +9,14 @@ import com.mdtalalwasim.user.service.services.UserService;
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.discovery.EurekaClient;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -26,8 +28,8 @@ public class UserServiceImpl implements UserService {
     private final RestTemplate restTemplate;
     private final EurekaClient eurekaClient;
 
-    private final String API_PATH = "/api/v1/ratings/users/";
-    private final String API_PATH_HOTEL = "/api/v1/hotels/";
+    private final String API_PATH_RATINGS = "/api/v1/ratings/users/";
+    private final String API_PATH_HOTELS = "/api/v1/hotels/";
 
     @Override
     public User saveUser(User user) {
@@ -44,24 +46,32 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUser(String userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found with given ID :" + userId));
+        //TODO: Refractor the code
+        //fetch rating of the above user from the rating server::
+        InstanceInfo ratingService = eurekaClient.getNextServerFromEureka("RATING-SERVICE", false);
+        InstanceInfo hotelService = eurekaClient.getNextServerFromEureka("HOTEL-SERVICE", false);
 
-        //fetch rating of the above user from rating server::
-        InstanceInfo nextServerFromEureka = eurekaClient.getNextServerFromEureka("rating-service", false);
-        String homePageUrl = nextServerFromEureka.getHomePageUrl();
-        String url = homePageUrl+API_PATH+user.getUserId();
-        String urlForHotel = homePageUrl+API_PATH_HOTEL;
+        String ratingURL = ratingService.getHomePageUrl()+ API_PATH_RATINGS +user.getUserId();
 
-        ArrayList ratings = restTemplate.exchange(url, HttpMethod.GET, null, ArrayList.class).getBody();
+        ResponseEntity<List<Rating>> ratingResponse = restTemplate.exchange(
+                ratingURL,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<List<Rating>>() {
+                }
+        );
 
-//        //ArrayList ratings = restTemplate.getForObject(url, ArrayList.class);
-//
-//        List<Rating> ratingList= (List<Rating>) ratings.stream().map(rating -> {
-//            restTemplate.exchange(urlForHotel, HttpMethod.GET, null, ArrayList.class).getBody();
-//            return rating;
-//        }).collect(Collectors.toList());
+        List<Rating> ratings = Optional.ofNullable(ratingResponse.getBody()).orElseThrow(() -> new ResourceNotFoundException("No Rating found for user with id :" + userId));
 
+        List<Rating> ratingsList = ratings.stream().map(rating -> {
+            ResponseEntity<Hotel> hotel = restTemplate
+                    .exchange(hotelService.getHomePageUrl() + API_PATH_HOTELS + rating.getHotelId(), HttpMethod.GET, null, Hotel.class);
+            rating.setHotel(hotel.getBody());
+            return rating;
 
-        //user.setRatings(ratingList);
+        }).collect(Collectors.toList());
+
+        user.setRatings(ratingsList);
         return user;
     }
 
