@@ -45,6 +45,7 @@ public class RatingController {
     public List<Rating> getAllByUserId(@PathVariable String userId){
         return ratingService.getAllByUserId(userId);
     }
+
     @GetMapping("/hotels/{hotelId}")
     public List<Rating> getAllByHotelId(@PathVariable String hotelId){
         return ratingService.getAllByHotelId(hotelId);
