@@ -69,7 +69,9 @@ public class UserServiceImpl implements UserService {
                 new ParameterizedTypeReference<List<Rating>>() {
                 }
         );
-        List<Rating> ratings = Optional.ofNullable(ratingResponse.getBody()).orElseThrow(() -> new ResourceNotFoundException("No Rating found for user with id :" + userId));
+        List<Rating> ratings = Optional.ofNullable(
+            ratingResponse.getBody())
+            .orElseThrow(() -> new ResourceNotFoundException("No Rating found for user with id :" + userId));
         */
 
         //using Feign Client:
