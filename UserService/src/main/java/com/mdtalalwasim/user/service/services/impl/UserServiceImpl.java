@@ -4,6 +4,7 @@ import com.mdtalalwasim.user.service.entities.Hotel;
 import com.mdtalalwasim.user.service.entities.Rating;
 import com.mdtalalwasim.user.service.entities.User;
 import com.mdtalalwasim.user.service.exception.ResourceNotFoundException;
+import com.mdtalalwasim.user.service.external.service.HotelServiceExternal;
 import com.mdtalalwasim.user.service.repositories.UserRepository;
 import com.mdtalalwasim.user.service.services.UserService;
 import com.netflix.appinfo.InstanceInfo;
@@ -27,6 +28,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
     private final EurekaClient eurekaClient;
+    private final HotelServiceExternal hotelServiceExternal;
 
     private final String API_PATH_RATINGS = "api/v1/ratings/users/";
     private final String API_PATH_HOTELS = "api/v1/hotels/";
@@ -67,15 +69,21 @@ public class UserServiceImpl implements UserService {
 
 
         List<Rating> ratingsList = ratings.stream().map(rating -> {
-            ResponseEntity<Hotel> hotel = restTemplate
+
+            //Using RestTemplate
+            /*ResponseEntity<Hotel> hotel = restTemplate
                     .exchange(
                             hotelUrl + rating.getHotelId(),
                             HttpMethod.GET,
                             null,
                             Hotel.class
                     );
+      rating.setHotel(hotel.getBody());*/
 
-            rating.setHotel(hotel.getBody());
+            //Using Feign Client
+            Hotel hotel = hotelServiceExternal.getHotel(rating.getHotelId());
+            rating.setHotel(hotel);
+
             return rating;
 
         }).collect(Collectors.toList());
