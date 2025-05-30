@@ -5,6 +5,7 @@ import com.mdtalalwasim.user.service.entities.Rating;
 import com.mdtalalwasim.user.service.entities.User;
 import com.mdtalalwasim.user.service.exception.ResourceNotFoundException;
 import com.mdtalalwasim.user.service.external.service.HotelServiceExternal;
+import com.mdtalalwasim.user.service.external.service.RatingServiceExternal;
 import com.mdtalalwasim.user.service.repositories.UserRepository;
 import com.mdtalalwasim.user.service.services.UserService;
 import com.netflix.appinfo.InstanceInfo;
@@ -29,6 +30,7 @@ public class UserServiceImpl implements UserService {
     private final RestTemplate restTemplate;
     private final EurekaClient eurekaClient;
     private final HotelServiceExternal hotelServiceExternal;
+    private final RatingServiceExternal ratingServiceExternal;
 
     private final String API_PATH_RATINGS = "api/v1/ratings/users/";
     private final String API_PATH_HOTELS = "api/v1/hotels/";
@@ -57,20 +59,25 @@ public class UserServiceImpl implements UserService {
 
         String hotelUrl = hotelServiceHomeUrl + API_PATH_HOTELS;
 
-        ResponseEntity<List<Rating>> ratingResponse = restTemplate.exchange(
+
+        //using restTemplate:
+
+        /*ResponseEntity<List<Rating>> ratingResponse = restTemplate.exchange(
                 ratingUrl,
                 HttpMethod.GET,
                 null,
                 new ParameterizedTypeReference<List<Rating>>() {
                 }
         );
-
         List<Rating> ratings = Optional.ofNullable(ratingResponse.getBody()).orElseThrow(() -> new ResourceNotFoundException("No Rating found for user with id :" + userId));
+        */
 
+        //using Feign Client:
+        List<Rating> ratings = ratingServiceExternal.getRating(userId);
 
         List<Rating> ratingsList = ratings.stream().map(rating -> {
 
-            //Using RestTemplate
+            //Using RestTemplate:
             /*ResponseEntity<Hotel> hotel = restTemplate
                     .exchange(
                             hotelUrl + rating.getHotelId(),
@@ -80,7 +87,7 @@ public class UserServiceImpl implements UserService {
                     );
       rating.setHotel(hotel.getBody());*/
 
-            //Using Feign Client
+            //Using Feign Client:
             Hotel hotel = hotelServiceExternal.getHotel(rating.getHotelId());
             rating.setHotel(hotel);
 
