@@ -28,8 +28,8 @@ public class UserServiceImpl implements UserService {
     private final RestTemplate restTemplate;
     private final EurekaClient eurekaClient;
 
-    private final String API_PATH_RATINGS = "/api/v1/ratings/users/";
-    private final String API_PATH_HOTELS = "/api/v1/hotels/";
+    private final String API_PATH_RATINGS = "api/v1/ratings/users/";
+    private final String API_PATH_HOTELS = "api/v1/hotels/";
 
     @Override
     public User saveUser(User user) {
@@ -48,13 +48,15 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found with given ID :" + userId));
         //TODO: Refractor the code
         //fetch rating of the above user from the rating server::
-        InstanceInfo ratingService = eurekaClient.getNextServerFromEureka("RATING-SERVICE", false);
-        InstanceInfo hotelService = eurekaClient.getNextServerFromEureka("HOTEL-SERVICE", false);
+        String ratingServiceHomeUrl = eurekaClient.getNextServerFromEureka("RATING-SERVICE", false).getHomePageUrl();
+        String hotelServiceHomeUrl = eurekaClient.getNextServerFromEureka("HOTEL-SERVICE", false).getHomePageUrl();
 
-        String ratingURL = ratingService.getHomePageUrl()+ API_PATH_RATINGS +user.getUserId();
+        String ratingUrl = ratingServiceHomeUrl + API_PATH_RATINGS +user.getUserId();
+
+        String hotelUrl = hotelServiceHomeUrl + API_PATH_HOTELS;
 
         ResponseEntity<List<Rating>> ratingResponse = restTemplate.exchange(
-                ratingURL,
+                ratingUrl,
                 HttpMethod.GET,
                 null,
                 new ParameterizedTypeReference<List<Rating>>() {
@@ -63,9 +65,16 @@ public class UserServiceImpl implements UserService {
 
         List<Rating> ratings = Optional.ofNullable(ratingResponse.getBody()).orElseThrow(() -> new ResourceNotFoundException("No Rating found for user with id :" + userId));
 
+
         List<Rating> ratingsList = ratings.stream().map(rating -> {
             ResponseEntity<Hotel> hotel = restTemplate
-                    .exchange(hotelService.getHomePageUrl() + API_PATH_HOTELS + rating.getHotelId(), HttpMethod.GET, null, Hotel.class);
+                    .exchange(
+                            hotelUrl + rating.getHotelId(),
+                            HttpMethod.GET,
+                            null,
+                            Hotel.class
+                    );
+
             rating.setHotel(hotel.getBody());
             return rating;
 
