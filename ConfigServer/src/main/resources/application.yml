@@ -1,1 +1,13 @@
-spring.application.name=ConfigServer
+server:
+  port: 8085
+spring:
+  application:
+    name: CONFIG-SERVER
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/mdtalalwasim/Git-Config-Microservice-HRP
+          clone-on-start: true
+          default-label: main
+
