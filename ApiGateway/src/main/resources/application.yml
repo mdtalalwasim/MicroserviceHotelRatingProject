@@ -8,6 +8,7 @@ spring:
     gateway:
       routes:
         - id: USER-SERVICE
+#          uri: lb://CONFIG-DEFAULT
           uri: lb://USER-SERVICE
           predicates:
             - Path=/api/v1/users/**
@@ -23,12 +24,14 @@ spring:
             - Path=/api/v1/ratings/**
 
 
-
-eureka:
-  client:
-    fetch-registry: true #by default, it was true
-    register-with-eureka: true #by default, it was true
-    service-url:
-      defaultZone: http://localhost:8761/eureka
-  instance:
-    prefer-ip-address: true
+  config:
+    import: configserver:http://localhost:8085
+    
+#eureka:
+#  client:
+#    fetch-registry: true #by default, it was true
+#    register-with-eureka: true #by default, it was true
+#    service-url:
+#      defaultZone: http://localhost:8761/eureka
+#  instance:
+#    prefer-ip-address: true
